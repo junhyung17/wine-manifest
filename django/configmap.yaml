@@ -1,0 +1,37 @@
+# ============================================================
+# 파일: django/configmap.yaml
+# 역할: Django 앱의 환경변수 설정 (민감하지 않은 값)
+#
+# ConfigMap vs Secret:
+#   - ConfigMap: 일반 설정값 (호스트명, URL 등)
+#   - Secret: 민감한 값 (비밀번호, API 키 등)
+#
+# 이 파일에 있는 값들은 GitHub에 올려도 되는 것들
+# ============================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wine-api-config      # Deployment에서 이 이름으로 참조
+  namespace: wine
+data:
+  # Django 설정
+  DEBUG: "False"                          # 프로덕션 환경에서는 반드시 False
+  DJANGO_SETTINGS_MODULE: "config.settings"
+
+  # 허용할 호스트 (Istio 도메인 포함)
+  ALLOWED_HOSTS: "wine.homelab,wine-api-svc,localhost,127.0.0.1"
+
+  # 데이터베이스 연결 (비밀번호는 Secret에서, 호스트/DB명은 여기서)
+  DB_HOST: "wine-db-svc"      # PostgreSQL Service 이름 (K8S DNS로 자동 해석)
+  DB_PORT: "5432"
+  DB_NAME: "winedb"           # secret.yaml의 POSTGRES_DB와 일치해야 함
+  DB_USER: "wineuser"         # secret.yaml의 POSTGRES_USER와 일치해야 함
+
+  # CORS 설정 (React 프론트엔드가 API 호출할 수 있도록 허용)
+  CORS_ALLOWED_ORIGINS: "http://wine.homelab"
+
+  # 정적 파일 저장 경로 (컨테이너 내부)
+  STATIC_ROOT: "/app/staticfiles"
+
+  # 로그 레벨 (INFO = 일반 로그, DEBUG = 상세 로그)
+  LOG_LEVEL: "INFO"

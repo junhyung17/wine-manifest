@@ -1,0 +1,106 @@
+# ============================================================
+# 파일: postgresql/statefulset.yaml
+# 역할: PostgreSQL 데이터베이스를 K8S StatefulSet으로 배포
+#
+# StatefulSet vs Deployment:
+#   - Deployment: 상태 없는 앱 (웹서버, API 등) - Pod 이름이 랜덤
+#   - StatefulSet: 상태 있는 앱 (DB 등) - Pod 이름 고정, 데이터 유지
+#
+# 스토리지: Longhorn (클러스터에 이미 설치됨)
+#   - Longhorn = 분산 블록 스토리지
+#   - Pod가 죽고 다른 노드에서 재시작해도 데이터 보존
+# ============================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: wine-db              # StatefulSet 이름
+  namespace: wine
+  labels:
+    app: wine-db             # 라벨 = K8S 리소스를 선택하는 태그
+spec:
+  serviceName: wine-db-svc   # 헤드리스 서비스와 연결 (DNS 이름 생성용)
+  replicas: 1                # DB는 1개만 (고가용성 필요 시 나중에 늘림)
+  selector:
+    matchLabels:
+      app: wine-db           # 이 라벨을 가진 Pod를 관리
+  template:
+    metadata:
+      labels:
+        app: wine-db
+    spec:
+      containers:
+      - name: postgresql
+        image: postgres:16-alpine   # PostgreSQL 16 (가벼운 Alpine 버전)
+        ports:
+        - containerPort: 5432       # PostgreSQL 기본 포트
+
+        # 환경변수: Secret에서 값을 가져옴 (평문으로 쓰지 않음)
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: wine-db-secret   # secret.yaml의 이름
+              key: POSTGRES_USER
+
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: wine-db-secret
+              key: POSTGRES_PASSWORD
+
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: wine-db-secret
+              key: POSTGRES_DB
+
+        # PostgreSQL 데이터 저장 경로
+        volumeMounts:
+        - name: wine-db-data
+          mountPath: /var/lib/postgresql/data   # PostgreSQL이 데이터를 저장하는 경로
+
+        # Pod 건강 상태 체크
+        # livenessProbe: Pod가 살아있는지 확인 (실패 시 재시작)
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+            - -d
+            - $(POSTGRES_DB)
+          initialDelaySeconds: 30    # Pod 시작 후 30초 후부터 체크
+          periodSeconds: 10          # 10초마다 체크
+
+        # readinessProbe: 트래픽 받을 준비가 됐는지 확인
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+            - -d
+            - $(POSTGRES_DB)
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+        # 리소스 제한 (노드 과부하 방지)
+        resources:
+          requests:
+            memory: "256Mi"    # 최소 보장 메모리
+            cpu: "100m"        # 최소 보장 CPU (100m = 0.1 코어)
+          limits:
+            memory: "512Mi"    # 최대 사용 메모리
+            cpu: "500m"        # 최대 사용 CPU (500m = 0.5 코어)
+
+  # PVC 템플릿: 각 Pod마다 자동으로 PersistentVolumeClaim 생성
+  # PVC = K8S가 스토리지(Longhorn)에 볼륨을 요청하는 티켓
+  volumeClaimTemplates:
+  - metadata:
+      name: wine-db-data
+    spec:
+      accessModes: ["ReadWriteOnce"]   # 한 번에 하나의 노드만 읽기/쓰기 가능
+      storageClassName: longhorn       # Longhorn 스토리지 사용 (클러스터에 설치됨)
+      resources:
+        requests:
+          storage: 5Gi                 # 5GB 할당 (와인 노트 수천 개도 충분)

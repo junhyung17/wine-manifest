@@ -1,0 +1,27 @@
+# ============================================================
+# 파일: django/service.yaml
+# 역할: Django Pod들에 접근하는 고정 주소 제공
+#
+# 트래픽 흐름:
+#   외부 요청 → Istio IngressGateway(192.168.0.101)
+#             → wine-api-svc (이 Service)
+#             → wine-api Pod들 (로드밸런싱)
+#
+# ClusterIP: 클러스터 내부용 (Istio가 내부에서 라우팅하므로 이것으로 충분)
+# ============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: wine-api-svc
+  namespace: wine
+  labels:
+    app: wine-api
+spec:
+  type: ClusterIP
+  selector:
+    app: wine-api             # wine-api 라벨을 가진 Pod로 트래픽 전달
+  ports:
+  - name: http
+    port: 80                  # Service 포트 (Istio VirtualService에서 80으로 참조)
+    targetPort: 8000          # Django/Gunicorn 실제 포트
+    protocol: TCP

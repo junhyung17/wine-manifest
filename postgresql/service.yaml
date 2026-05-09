@@ -1,0 +1,28 @@
+# ============================================================
+# 파일: postgresql/service.yaml
+# 역할: PostgreSQL Pod에 접근하는 고정 주소(DNS) 제공
+#
+# Service가 필요한 이유:
+#   - Pod는 재시작하면 IP가 바뀜
+#   - Service = 항상 같은 주소로 Pod에 연결해주는 로드밸런서
+#   - Django가 "wine-db-svc:5432"로 항상 DB에 접속 가능
+#
+# ClusterIP: 클러스터 내부에서만 접근 가능 (외부 노출 안 함)
+#            DB는 외부에 노출하면 보안 위험이므로 ClusterIP 사용
+# ============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: wine-db-svc          # Django가 이 이름으로 DB에 접속
+  namespace: wine
+  labels:
+    app: wine-db
+spec:
+  type: ClusterIP            # 클러스터 내부에서만 접근 가능
+  selector:
+    app: wine-db             # 이 라벨을 가진 Pod로 트래픽 전달
+  ports:
+  - name: postgresql
+    port: 5432               # Service가 외부에 노출하는 포트
+    targetPort: 5432         # Pod의 실제 포트
+    protocol: TCP

@@ -1,0 +1,68 @@
+# ============================================================
+# 파일: istio/gateway-vs.yaml
+# 역할: 외부에서 wine.homelab으로 들어오는 요청을 Django로 라우팅
+#
+# 트래픽 흐름:
+#   브라우저(wine.homelab) → MetalLB(192.168.0.101)
+#   → Istio IngressGateway → [이 파일이 담당]
+#   → wine-api-svc → Django Pod
+#
+# stock-site 패턴과 동일한 구조
+# ============================================================
+---
+# Gateway: Istio IngressGateway에 wine.homelab 도메인 연결
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: wine-gateway
+  namespace: wine            # wine 네임스페이스에 위치
+spec:
+  selector:
+    istio: ingressgateway    # istio-system의 IngressGateway Pod 선택
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "wine.homelab"         # 이 도메인으로 들어오는 요청만 처리
+                             # Windows hosts 파일에 추가 필요: 192.168.0.101 wine.homelab
+---
+# VirtualService: Gateway로 들어온 요청을 어느 Service로 보낼지 결정
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: wine-vs
+  namespace: wine
+spec:
+  hosts:
+  - "wine.homelab"
+  gateways:
+  - wine-gateway             # 위의 Gateway와 연결
+  http:
+  # /api/ 로 시작하는 요청 → Django API 서버
+  - match:
+    - uri:
+        prefix: /api/
+    route:
+    - destination:
+        host: wine-api-svc   # django/service.yaml의 Service 이름
+        port:
+          number: 80
+
+  # /admin/ 로 시작하는 요청 → Django 관리자 페이지
+  - match:
+    - uri:
+        prefix: /admin/
+    route:
+    - destination:
+        host: wine-api-svc
+        port:
+          number: 80
+
+  # 나머지 모든 요청도 Django로 (React SPA는 Django가 index.html 서빙)
+  - route:
+    - destination:
+        host: wine-api-svc
+        port:
+          number: 80
