@@ -54,6 +54,11 @@ spec:
               name: wine-db-secret
               key: POSTGRES_DB
 
+        # Longhorn PV는 ext4로 포맷되어 lost+found가 생기므로
+        # PostgreSQL 데이터를 서브디렉토리에 저장
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+
         # PostgreSQL 데이터 저장 경로
         volumeMounts:
         - name: wine-db-data
