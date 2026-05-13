@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wine-frontend-deploy
+  namespace: wine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wine-frontend
+  template:
+    metadata:
+      labels:
+        app: wine-frontend
+    spec:
+      imagePullSecrets:
+      - name: ghcr-secret
+      containers:
+      - name: wine-frontend
+        image: ghcr.io/junhyung17/wine-note-frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"

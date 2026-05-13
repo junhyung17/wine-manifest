@@ -60,9 +60,9 @@ spec:
         port:
           number: 80
 
-  # 나머지 모든 요청도 Django로 (React SPA는 Django가 index.html 서빙)
+  # 나머지 모든 요청 → React 프론트엔드
   - route:
     - destination:
-        host: wine-api-svc
+        host: wine-frontend-svc
         port:
           number: 80
