@@ -19,7 +19,7 @@ data:
   DJANGO_SETTINGS_MODULE: "config.settings"
 
   # 허용할 호스트 (Istio 도메인 포함)
-  ALLOWED_HOSTS: "wine.homelab,wine-api-svc,localhost,127.0.0.1"
+  ALLOWED_HOSTS: "*"
 
   # 데이터베이스 연결 (비밀번호는 Secret에서, 호스트/DB명은 여기서)
   DB_HOST: "wine-db-svc"      # PostgreSQL Service 이름 (K8S DNS로 자동 해석)
