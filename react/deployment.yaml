@@ -12,6 +12,8 @@ spec:
     metadata:
       labels:
         app: wine-frontend
+      annotations:
+        deployed-sha: "init"
     spec:
       imagePullSecrets:
       - name: ghcr-secret

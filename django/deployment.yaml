@@ -23,6 +23,8 @@ spec:
     metadata:
       labels:
         app: wine-api
+      annotations:
+        deployed-sha: "init"
     spec:
       # ghcr.io (GitHub Container Registry) 이미지를 가져오기 위한 인증
       # 아래 Secret이 없으면 이미지를 못 가져옴
