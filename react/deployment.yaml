@@ -13,7 +13,7 @@ spec:
       labels:
         app: wine-frontend
       annotations:
-        deployed-sha: "init"
+        deployed-sha: "b64b003"
     spec:
       imagePullSecrets:
       - name: ghcr-secret
